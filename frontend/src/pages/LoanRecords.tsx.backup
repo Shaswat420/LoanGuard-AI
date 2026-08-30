@@ -1,0 +1,424 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "./LoanRecords.css";
+
+interface Loan {
+  id: number;
+  loanNumber: string;
+  borrowerName: string;
+  originalLoanAmount: number;
+  currentBalance: number;
+  interestRate: number;
+  loanStatus: string;
+  verificationStatus: string;
+  validationErrorCount: number;
+  updatedAt: string;
+  dataSource: string;
+}
+
+const API_URL = "http://localhost:8082/api";
+
+function LoanRecords() {
+  const navigate = useNavigate();
+
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState("ALL");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchLoans();
+  }, []);
+
+  const fetchLoans = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(`${API_URL}/loans`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to load loans: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Supports either:
+      // [loan, loan]
+      // OR { content: [loan, loan] }
+      const loanData = Array.isArray(data)
+        ? data
+        : Array.isArray(data.content)
+        ? data.content
+        : [];
+
+      setLoans(loanData);
+    } catch (err) {
+      console.error("Loan loading error:", err);
+      setError("Unable to load loan records.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredLoans = useMemo(() => {
+    return loans.filter((loan) => {
+      const searchText = search.toLowerCase().trim();
+
+      const matchesSearch =
+        !searchText ||
+        loan.loanNumber?.toLowerCase().includes(searchText) ||
+        loan.borrowerName?.toLowerCase().includes(searchText);
+
+      let matchesFilter = true;
+
+      if (activeFilter === "VERIFIED") {
+        matchesFilter = loan.verificationStatus === "VERIFIED";
+      }
+
+      if (activeFilter === "NEEDS_REVIEW") {
+        matchesFilter = loan.verificationStatus === "NEEDS_REVIEW";
+      }
+
+      if (activeFilter === "REJECTED") {
+        matchesFilter = loan.verificationStatus === "REJECTED";
+      }
+
+      if (activeFilter === "PENDING") {
+        matchesFilter = loan.verificationStatus === "PENDING";
+      }
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [loans, search, activeFilter]);
+
+  const totalLoans = loans.length;
+
+  const verifiedLoans = loans.filter(
+    (loan) => loan.verificationStatus === "VERIFIED"
+  ).length;
+
+  const reviewLoans = loans.filter(
+    (loan) => loan.verificationStatus === "NEEDS_REVIEW"
+  ).length;
+
+  const rejectedLoans = loans.filter(
+    (loan) => loan.verificationStatus === "REJECTED"
+  ).length;
+
+  const formatMoney = (value: number) => {
+    if (value === undefined || value === null) {
+      return "—";
+    }
+
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const formatDate = (value: string) => {
+    if (!value) return "—";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
+
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case "VERIFIED":
+        return "status status-verified";
+
+      case "NEEDS_REVIEW":
+        return "status status-exception";
+
+      case "REJECTED":
+        return "status status-rejected";
+
+      case "PENDING":
+      default:
+        return "status status-pending";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "VERIFIED":
+        return "VERIFIED";
+
+      case "NEEDS_REVIEW":
+        return "NEEDS REVIEW";
+
+      case "REJECTED":
+        return "REJECTED";
+
+      case "PENDING":
+        return "PENDING";
+
+      default:
+        return status || "PENDING";
+    }
+  };
+
+  return (
+    <div className="loan-page">
+      {/* HEADER */}
+      <div className="loan-header">
+        <div>
+          <div className="eyebrow">LOANGUARD AI</div>
+
+          <h1>Loan Records</h1>
+
+          <p>
+            Normalized loan data, validation status, and verification workflow.
+          </p>
+        </div>
+
+        <button
+          className="upload-button"
+          onClick={() => navigate("/upload")}
+        >
+          <span>＋</span>
+          Upload Loan Tape
+        </button>
+      </div>
+
+      {/* STATISTICS */}
+      <div className="loan-stats">
+        <div className="stat-card">
+          <span>Total Loans</span>
+
+          <strong>{totalLoans}</strong>
+
+          <small>Records ingested</small>
+        </div>
+
+        <div className="stat-card">
+          <span>Verified</span>
+
+          <strong className="positive">{verifiedLoans}</strong>
+
+          <small>
+            {totalLoans > 0
+              ? `${Math.round((verifiedLoans / totalLoans) * 100)}% verified`
+              : "No records"}
+          </small>
+        </div>
+
+        <div className="stat-card">
+          <span>Needs Review</span>
+
+          <strong className="warning-text">{reviewLoans}</strong>
+
+          <small>Requires human review</small>
+        </div>
+
+        <div className="stat-card">
+          <span>Rejected</span>
+
+          <strong className="rejected-number">{rejectedLoans}</strong>
+
+          <small>Validation exceptions</small>
+        </div>
+      </div>
+
+      {/* RECORDS */}
+      <div className="records-card">
+        {/* TOOLBAR */}
+        <div className="records-toolbar">
+          <div className="search-box">
+            <span className="search-icon">⌕</span>
+
+            <input
+              type="text"
+              placeholder="Search loan number or borrower..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+
+          <div className="filters">
+            <button
+              className={`filter ${
+                activeFilter === "ALL" ? "active" : ""
+              }`}
+              onClick={() => setActiveFilter("ALL")}
+            >
+              ALL
+            </button>
+
+            <button
+              className={`filter ${
+                activeFilter === "VERIFIED" ? "active" : ""
+              }`}
+              onClick={() => setActiveFilter("VERIFIED")}
+            >
+              VERIFIED
+            </button>
+
+            <button
+              className={`filter ${
+                activeFilter === "NEEDS_REVIEW" ? "active" : ""
+              }`}
+              onClick={() => setActiveFilter("NEEDS_REVIEW")}
+            >
+              NEEDS REVIEW
+            </button>
+
+            <button
+              className={`filter ${
+                activeFilter === "REJECTED" ? "active" : ""
+              }`}
+              onClick={() => setActiveFilter("REJECTED")}
+            >
+              REJECTED
+            </button>
+          </div>
+        </div>
+
+        {/* ERROR */}
+        {error && (
+          <div className="error-banner">
+            <strong>Error:</strong> {error}
+
+            <button onClick={fetchLoans}>Retry</button>
+          </div>
+        )}
+
+        {/* TABLE */}
+        <div className="table-wrapper">
+          {loading ? (
+            <div className="loading-state">
+              <div className="loading-spinner"></div>
+              <p>Loading loan records...</p>
+            </div>
+          ) : filteredLoans.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">⌁</div>
+
+              <strong>No loan records found</strong>
+
+              <p>
+                Try changing your search or filter, or upload a loan tape.
+              </p>
+            </div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>LOAN ID</th>
+                  <th>BORROWER</th>
+                  <th>ORIGINAL AMOUNT</th>
+                  <th>CURRENT BALANCE</th>
+                  <th>RATE</th>
+                  <th>STATUS</th>
+                  <th>ISSUES</th>
+                  <th>UPDATED</th>
+                  <th>ACTION</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredLoans.map((loan) => (
+                  <tr key={loan.id}>
+                    <td>
+                      <span className="loan-id">
+                        {loan.loanNumber || `LN-${loan.id}`}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span className="borrower">
+                        {loan.borrowerName || "Unknown"}
+                      </span>
+                    </td>
+
+                    <td>
+                      {formatMoney(loan.originalLoanAmount)}
+                    </td>
+
+                    <td>
+                      {formatMoney(loan.currentBalance)}
+                    </td>
+
+                    <td>
+                      {loan.interestRate !== undefined
+                        ? `${loan.interestRate}%`
+                        : "—"}
+                    </td>
+
+                    <td>
+                      <span className={getStatusClass(loan.verificationStatus)}>
+                        <span className="status-dot"></span>
+
+                        {getStatusLabel(loan.verificationStatus)}
+                      </span>
+                    </td>
+
+                    <td>
+                      {loan.validationErrorCount > 0 ? (
+                        <span className="issue">
+                          {loan.validationErrorCount} issue
+                          {loan.validationErrorCount > 1 ? "s" : ""}
+                        </span>
+                      ) : (
+                        <span className="issue-clean">
+                          No issues
+                        </span>
+                      )}
+                    </td>
+
+                    <td>
+                      <span className="updated">
+                        {formatDate(loan.updatedAt)}
+                      </span>
+                    </td>
+
+                    <td>
+                      {/* IMPORTANT:
+                          This opens the real Reviewer page.
+                      */}
+                      <button
+                        className="view-button"
+                        onClick={() =>
+                          navigate(`/reviewer/${loan.id}`)
+                        }
+                      >
+                        REVIEW
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* FOOTER */}
+        <div className="table-footer">
+          <span>
+            Showing <strong>{filteredLoans.length}</strong> of{" "}
+            <strong>{totalLoans}</strong> loans
+          </span>
+
+          <span className="normalized">
+            ● Normalized & connected to verification engine
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default LoanRecords;

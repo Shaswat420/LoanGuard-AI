@@ -1,0 +1,1710 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import "./Reviewer.css";
+
+const API = "http://localhost:8082";
+
+type Loan = {
+  id: number;
+  loanNumber: string;
+  borrowerName: string;
+  originalLoanAmount: number;
+  currentBalance: number;
+  interestRate: number;
+  loanTermMonths: number;
+  loanStatus: string;
+  originationDate: string;
+  maturityDate: string;
+  dataSource: string;
+  validationErrorCount: number;
+  verificationStatus: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ValidationIssue = {
+  rule: string;
+  field: string;
+  severity: string;
+  message: string;
+  actualValue: string | null;
+  expectedValue: string;
+};
+
+type ValidationResult = {
+  valid: boolean;
+  loanId: number;
+  loanNumber: string;
+  errorCount: number;
+  issues: ValidationIssue[];
+};
+
+type RiskFactor = {
+  factor: string;
+  severity: string;
+  impact: string;
+  description: string;
+};
+
+type RiskAnalysis = {
+  loanId: number;
+  loanNumber: string;
+  riskScore: number;
+  riskLevel: string;
+  recommendation: string;
+  confidence: number;
+  validationPassed: boolean;
+  validationErrorCount: number;
+  factors: RiskFactor[];
+};
+
+type EditForm = {
+  loanNumber: string;
+  borrowerName: string;
+  originalLoanAmount: string;
+  currentBalance: string;
+  interestRate: string;
+  loanTermMonths: string;
+  originationDate: string;
+  maturityDate: string;
+  loanStatus: string;
+  dataSource: string;
+};
+
+function Reviewer() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [loan, setLoan] = useState<Loan | null>(null);
+
+  const [validation, setValidation] =
+    useState<ValidationResult | null>(null);
+
+  const [riskAnalysis, setRiskAnalysis] =
+    useState<RiskAnalysis | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [validating, setValidating] = useState(false);
+  const [riskLoading, setRiskLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [message, setMessage] = useState("");
+
+  const [editForm, setEditForm] = useState<EditForm>({
+    loanNumber: "",
+    borrowerName: "",
+    originalLoanAmount: "",
+    currentBalance: "",
+    interestRate: "",
+    loanTermMonths: "",
+    originationDate: "",
+    maturityDate: "",
+    loanStatus: "",
+    dataSource: "",
+  });
+
+  useEffect(() => {
+    loadLoan();
+  }, [id]);
+
+  async function loadLoan() {
+    try {
+      setLoading(true);
+      setMessage("");
+
+      const response = await fetch(
+        `${API}/api/reviewer/loans/${id}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to load loan");
+      }
+
+      const data: Loan = await response.json();
+
+      setLoan(data);
+    } catch (error) {
+      console.error(error);
+      setMessage("Unable to load loan from backend.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function validateLoan() {
+    try {
+      setValidating(true);
+      setMessage("");
+
+      const response = await fetch(
+        `${API}/api/loans/${id}/validate`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Validation failed");
+      }
+
+      const result: ValidationResult =
+        await response.json();
+
+      setValidation(result);
+
+      await loadLoan();
+
+      if (result.valid) {
+        setMessage(
+          "Validation completed successfully. No issues detected."
+        );
+      } else {
+        setMessage(
+          `${result.errorCount} validation issue(s) detected.`
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage("Loan validation failed.");
+    } finally {
+      setValidating(false);
+    }
+  }
+
+  async function analyzeRisk() {
+    try {
+      setRiskLoading(true);
+      setMessage("");
+
+      const response = await fetch(
+        `${API}/api/risk/loans/${id}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Risk analysis failed");
+      }
+
+      const result: RiskAnalysis =
+        await response.json();
+
+      setRiskAnalysis(result);
+
+      setMessage(
+        `Risk analysis completed: ${result.riskLevel} risk.`
+      );
+    } catch (error) {
+      console.error(error);
+      setMessage("Unable to run risk analysis.");
+    } finally {
+      setRiskLoading(false);
+    }
+  }
+
+  function startEditing() {
+    if (!loan) return;
+
+    setEditForm({
+      loanNumber: loan.loanNumber ?? "",
+      borrowerName: loan.borrowerName ?? "",
+      originalLoanAmount: String(
+        loan.originalLoanAmount ?? ""
+      ),
+      currentBalance: String(
+        loan.currentBalance ?? ""
+      ),
+      interestRate: String(
+        loan.interestRate ?? ""
+      ),
+      loanTermMonths: String(
+        loan.loanTermMonths ?? ""
+      ),
+      originationDate:
+        loan.originationDate ?? "",
+      maturityDate:
+        loan.maturityDate ?? "",
+      loanStatus:
+        loan.loanStatus ?? "",
+      dataSource:
+        loan.dataSource ?? "",
+    });
+
+    setEditing(true);
+    setMessage("");
+  }
+
+  function cancelEditing() {
+    setEditing(false);
+    setMessage("");
+  }
+
+  function handleEditChange(
+    field: keyof EditForm,
+    value: string
+  ) {
+    setEditForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  }
+
+  async function saveChanges() {
+    try {
+      setSaving(true);
+      setMessage("");
+
+      const response = await fetch(
+        `${API}/api/reviewer/loans/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            loanNumber: editForm.loanNumber,
+            borrowerName: editForm.borrowerName,
+            originalLoanAmount: Number(
+              editForm.originalLoanAmount
+            ),
+            currentBalance: Number(
+              editForm.currentBalance
+            ),
+            interestRate: Number(
+              editForm.interestRate
+            ),
+            loanTermMonths: Number(
+              editForm.loanTermMonths
+            ),
+            originationDate:
+              editForm.originationDate,
+            maturityDate:
+              editForm.maturityDate,
+            loanStatus:
+              editForm.loanStatus,
+            dataSource:
+              editForm.dataSource,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+
+        console.error(
+          "Save failed:",
+          errorText
+        );
+
+        throw new Error(
+          "Unable to save loan"
+        );
+      }
+
+      const updatedLoan: Loan =
+        await response.json();
+
+      setLoan(updatedLoan);
+
+      /*
+       * Any edit invalidates the previous
+       * validation and risk analysis.
+       */
+      setValidation(null);
+      setRiskAnalysis(null);
+
+      setEditing(false);
+
+      setMessage(
+        "Loan changes saved. Revalidation is required."
+      );
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        "Unable to save loan changes."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function reviewerAction(
+    action: "approve" | "reject" | "review"
+  ) {
+    try {
+      setActionLoading(true);
+      setMessage("");
+
+      /*
+       * Prevent approving a record that has
+       * known validation errors.
+       */
+      if (
+        action === "approve" &&
+        loan &&
+        loan.validationErrorCount > 0
+      ) {
+        setMessage(
+          "Cannot approve a loan with validation errors. Revalidate the record first."
+        );
+        return;
+      }
+
+      const response = await fetch(
+        `${API}/api/reviewer/loans/${id}/${action}`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Reviewer action failed"
+        );
+      }
+
+      const updatedLoan: Loan =
+        await response.json();
+
+      setLoan(updatedLoan);
+
+      setMessage(
+        action === "approve"
+          ? "Loan approved successfully."
+          : action === "reject"
+            ? "Loan rejected."
+            : "Loan marked for human review."
+      );
+
+      await loadLoan();
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        "Unable to update loan."
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  function formatMoney(value: number) {
+    return new Intl.NumberFormat(
+      "en-IN",
+      {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      }
+    ).format(value);
+  }
+
+  function formatDate(value: string) {
+    if (!value) return "—";
+
+    return new Date(value).toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
+    );
+  }
+
+  function getStatusClass(status: string) {
+    switch (status) {
+      case "VERIFIED":
+        return "review-status verified";
+
+      case "REJECTED":
+        return "review-status rejected";
+
+      case "NEEDS_REVIEW":
+        return "review-status needs-review";
+
+      default:
+        return "review-status pending";
+    }
+  }
+
+  function getRiskLevelClass(level: string) {
+    return `risk-level ${level.toLowerCase()}`;
+  }
+
+  function getSeverityClass(
+    severity: string
+  ) {
+    return `risk-severity ${severity.toLowerCase()}`;
+  }
+
+  function getImpactClass(
+    impact: string
+  ) {
+    return `risk-impact ${impact.toLowerCase()}`;
+  }
+
+  function getRecommendationClass(
+    recommendation: string
+  ) {
+    return `recommendation-badge ${recommendation
+      .toLowerCase()
+      .replaceAll("_", "-")}`;
+  }
+
+  function getScoreClass(score: number) {
+    if (score >= 60) {
+      return "score-high";
+    }
+
+    if (score >= 30) {
+      return "score-medium";
+    }
+
+    return "score-low";
+  }
+
+  if (loading) {
+    return (
+      <div className="reviewer-page">
+        <div className="reviewer-loading">
+          <div className="loading-spinner"></div>
+
+          <p>
+            Loading loan record...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!loan) {
+    return (
+      <div className="reviewer-page">
+        <div className="reviewer-error">
+          <h2>
+            Loan not found
+          </h2>
+
+          <p>
+            {message ||
+              "The requested loan does not exist."}
+          </p>
+
+          <button
+            className="back-button"
+            onClick={() =>
+              navigate("/loans")
+            }
+          >
+            ← Back to Loan Records
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="reviewer-page">
+
+      {/* =====================================================
+          HEADER
+          ===================================================== */}
+
+      <header className="reviewer-header">
+        <div>
+          <button
+            className="back-link"
+            onClick={() =>
+              navigate("/loans")
+            }
+          >
+            ← Loan Records
+          </button>
+
+          <div className="reviewer-eyebrow">
+            LOAN DATA VERIFICATION COPILOT
+          </div>
+
+          <h1>
+            AI Reviewer
+          </h1>
+
+          <p>
+            Review, validate and verify loan-level
+            data before it becomes part of the
+            trusted dataset.
+          </p>
+        </div>
+
+        <div
+          className={getStatusClass(
+            loan.verificationStatus
+          )}
+        >
+          <span className="status-dot"></span>
+
+          {loan.verificationStatus.replaceAll(
+            "_",
+            " "
+          )}
+        </div>
+      </header>
+
+      {/* =====================================================
+          MESSAGE
+          ===================================================== */}
+
+      {message && (
+        <div className="reviewer-message">
+          {message}
+        </div>
+      )}
+
+      {/* =====================================================
+          LOAN IDENTITY
+          ===================================================== */}
+
+      <section className="loan-identity">
+        <div>
+          <span>LOAN RECORD</span>
+          <strong>
+            {loan.loanNumber}
+          </strong>
+        </div>
+
+        <div>
+          <span>BORROWER</span>
+          <strong>
+            {loan.borrowerName}
+          </strong>
+        </div>
+
+        <div>
+          <span>SOURCE</span>
+          <strong>
+            {loan.dataSource}
+          </strong>
+        </div>
+
+        <div>
+          <span>RECORD ID</span>
+          <strong>
+            #{loan.id}
+          </strong>
+        </div>
+      </section>
+
+      <div className="reviewer-grid">
+
+        {/* ===================================================
+            LEFT COLUMN
+            =================================================== */}
+
+        <main>
+
+          {/* =================================================
+              AI VALIDATION
+              ================================================= */}
+
+          <section className="panel ai-panel">
+
+            <div className="panel-heading">
+              <div>
+                <div className="panel-label">
+                  AI ASSISTED REVIEW
+                </div>
+
+                <h2>
+                  Verification Analysis
+                </h2>
+              </div>
+
+              <div className="ai-badge">
+                AI
+              </div>
+            </div>
+
+            {!validation ? (
+              <div className="ai-empty">
+
+                <div className="ai-icon">
+                  ✦
+                </div>
+
+                <h3>
+                  Run verification analysis
+                </h3>
+
+                <p>
+                  The verification engine will inspect
+                  this loan for data-quality issues and
+                  generate an explanation for the reviewer.
+                </p>
+
+                <button
+                  className="primary-button"
+                  onClick={validateLoan}
+                  disabled={validating}
+                >
+                  {validating
+                    ? "Analyzing Loan..."
+                    : "Run AI Review"}
+                </button>
+
+              </div>
+            ) : (
+              <div className="analysis-result">
+
+                <div
+                  className={
+                    validation.valid
+                      ? "analysis-summary valid"
+                      : "analysis-summary invalid"
+                  }
+                >
+                  <div className="analysis-icon">
+                    {validation.valid
+                      ? "✓"
+                      : "!"}
+                  </div>
+
+                  <div>
+                    <strong>
+                      {validation.valid
+                        ? "No validation issues detected"
+                        : `${validation.errorCount} issue(s) detected`}
+                    </strong>
+
+                    <p>
+                      {validation.valid
+                        ? "The current loan record passed the configured data-quality checks."
+                        : "The loan record requires reviewer attention before verification."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="analysis-section">
+
+                  <div className="section-title">
+                    DETECTED ISSUES
+                  </div>
+
+                  {validation.issues.length === 0 ? (
+                    <div className="clean-result">
+                      <span>
+                        ✓
+                      </span>
+
+                      All configured validation
+                      checks passed.
+                    </div>
+                  ) : (
+                    <div className="issues-list">
+
+                      {validation.issues.map(
+                        (issue, index) => (
+                          <div
+                            className="issue-row"
+                            key={`${issue.rule}-${index}`}
+                          >
+                            <span className="issue-number">
+                              {index + 1}
+                            </span>
+
+                            <div className="issue-content">
+                              <strong>
+                                {issue.message}
+                              </strong>
+
+                              <small>
+                                Rule: {issue.rule}
+                              </small>
+
+                              <small>
+                                Field: {issue.field}
+                              </small>
+
+                              <small>
+                                Severity: {issue.severity}
+                              </small>
+
+                              {issue.actualValue !== null && (
+                                <small>
+                                  Actual: {issue.actualValue}
+                                </small>
+                              )}
+
+                              <small>
+                                Expected: {issue.expectedValue}
+                              </small>
+                            </div>
+                          </div>
+                        )
+                      )}
+
+                    </div>
+                  )}
+                </div>
+
+                <div className="analysis-section">
+
+                  <div className="section-title">
+                    AI EXPLANATION
+                  </div>
+
+                  <div className="ai-explanation">
+
+                    {validation.valid ? (
+                      <>
+                        <strong>
+                          Recommendation: Approve
+                        </strong>
+
+                        <p>
+                          The loan contains no detected
+                          validation exceptions. Key
+                          financial, identity and lifecycle
+                          fields are currently consistent
+                          with the configured validation
+                          rules.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <strong>
+                          Recommendation: Human Review
+                        </strong>
+
+                        <p>
+                          One or more data-quality exceptions
+                          were detected. The reviewer should
+                          inspect the affected fields and
+                          determine whether the record can be
+                          corrected, accepted or rejected.
+                        </p>
+                      </>
+                    )}
+
+                  </div>
+                </div>
+
+                <button
+                  className="primary-button"
+                  onClick={validateLoan}
+                  disabled={validating}
+                >
+                  {validating
+                    ? "Revalidating..."
+                    : "Revalidate Loan"}
+                </button>
+
+              </div>
+            )}
+
+          </section>
+
+          {/* =================================================
+              AI RISK ANALYSIS
+              ================================================= */}
+
+          <section className="panel risk-panel">
+
+            <div className="panel-heading">
+
+              <div>
+                <div className="panel-label">
+                  AI RISK ENGINE
+                </div>
+
+                <h2>
+                  Risk Analysis
+                </h2>
+              </div>
+
+              <div className="ai-badge">
+                AI
+              </div>
+
+            </div>
+
+            {!riskAnalysis ? (
+              <div className="ai-empty">
+
+                <div className="ai-icon risk-icon">
+                  ◈
+                </div>
+
+                <h3>
+                  Run risk analysis
+                </h3>
+
+                <p>
+                  The risk engine evaluates data quality,
+                  loan balance, interest rate, lifecycle
+                  and loan status to generate a risk
+                  assessment.
+                </p>
+
+                <button
+                  className="primary-button"
+                  onClick={analyzeRisk}
+                  disabled={riskLoading}
+                >
+                  {riskLoading
+                    ? "Analyzing Risk..."
+                    : "Run Risk Analysis"}
+                </button>
+
+              </div>
+            ) : (
+              <div className="risk-result">
+
+                <div className="risk-overview">
+
+                  <div
+                    className={`risk-score-box ${getScoreClass(
+                      riskAnalysis.riskScore
+                    )}`}
+                  >
+                    <span className="risk-score">
+                      {riskAnalysis.riskScore}
+                    </span>
+
+                    <span className="risk-score-label">
+                      RISK SCORE
+                    </span>
+                  </div>
+
+                  <div className="risk-summary">
+
+                    <span className="risk-label">
+                      RISK LEVEL
+                    </span>
+
+                    <strong
+                      className={getRiskLevelClass(
+                        riskAnalysis.riskLevel
+                      )}
+                    >
+                      {riskAnalysis.riskLevel}
+                    </strong>
+
+                    <span className="risk-confidence">
+                      Confidence:{" "}
+                      {riskAnalysis.confidence}%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="risk-recommendation">
+
+                  <div>
+                    <span>
+                      AI RECOMMENDATION
+                    </span>
+
+                    <strong
+                      className={getRecommendationClass(
+                        riskAnalysis.recommendation
+                      )}
+                    >
+                      {riskAnalysis.recommendation.replaceAll(
+                        "_",
+                        " "
+                      )}
+                    </strong>
+                  </div>
+
+                  <div className="recommendation-confidence">
+                    {riskAnalysis.confidence}%
+                    confidence
+                  </div>
+
+                </div>
+
+                <div className="analysis-section">
+
+                  <div className="section-title">
+                    RISK FACTORS
+                  </div>
+
+                  <div className="risk-factors">
+
+                    {riskAnalysis.factors.map(
+                      (factor, index) => (
+                        <div
+                          className="risk-factor"
+                          key={`${factor.factor}-${index}`}
+                        >
+
+                          <div className="risk-factor-top">
+
+                            <strong>
+                              {factor.factor}
+                            </strong>
+
+                            <div className="risk-factor-tags">
+
+                              <span
+                                className={getSeverityClass(
+                                  factor.severity
+                                )}
+                              >
+                                {factor.severity}
+                              </span>
+
+                              <span
+                                className={getImpactClass(
+                                  factor.impact
+                                )}
+                              >
+                                {factor.impact}
+                              </span>
+
+                            </div>
+                          </div>
+
+                          <p>
+                            {factor.description}
+                          </p>
+
+                        </div>
+                      )
+                    )}
+
+                  </div>
+                </div>
+
+                <div className="risk-validation">
+
+                  <span className="validation-check">
+                    {riskAnalysis.validationPassed
+                      ? "✓"
+                      : "!"}
+                  </span>
+
+                  <div>
+                    <strong>
+                      {riskAnalysis.validationPassed
+                        ? "Validation passed"
+                        : "Validation exceptions detected"}
+                    </strong>
+
+                    <p>
+                      {riskAnalysis.validationErrorCount}
+                      {" "}
+                      validation error(s) recorded.
+                    </p>
+                  </div>
+
+                </div>
+
+                <button
+                  className="primary-button"
+                  onClick={analyzeRisk}
+                  disabled={riskLoading}
+                >
+                  {riskLoading
+                    ? "Reanalyzing..."
+                    : "Run Risk Analysis Again"}
+                </button>
+
+              </div>
+            )}
+
+          </section>
+
+          {/* =================================================
+              LOAN DATA / EDITOR
+              ================================================= */}
+
+          <section className="panel">
+
+            <div className="panel-heading">
+
+              <div>
+                <div className="panel-label">
+                  NORMALIZED RECORD
+                </div>
+
+                <h2>
+                  Loan Data
+                </h2>
+              </div>
+
+              {!editing && (
+                <button
+                  className="edit-button"
+                  onClick={startEditing}
+                  disabled={
+                    actionLoading ||
+                    saving
+                  }
+                >
+                  ✎ Edit Loan
+                </button>
+              )}
+
+            </div>
+
+            {editing ? (
+
+              <div className="loan-edit-form">
+
+                <div className="edit-form-grid">
+
+                  <EditField
+                    label="Loan Number"
+                    value={editForm.loanNumber}
+                    onChange={(value) =>
+                      handleEditChange(
+                        "loanNumber",
+                        value
+                      )
+                    }
+                  />
+
+                  <EditField
+                    label="Borrower Name"
+                    value={editForm.borrowerName}
+                    onChange={(value) =>
+                      handleEditChange(
+                        "borrowerName",
+                        value
+                      )
+                    }
+                  />
+
+                  <EditField
+                    label="Original Loan Amount"
+                    type="number"
+                    value={
+                      editForm.originalLoanAmount
+                    }
+                    onChange={(value) =>
+                      handleEditChange(
+                        "originalLoanAmount",
+                        value
+                      )
+                    }
+                  />
+
+                  <EditField
+                    label="Current Balance"
+                    type="number"
+                    value={
+                      editForm.currentBalance
+                    }
+                    onChange={(value) =>
+                      handleEditChange(
+                        "currentBalance",
+                        value
+                      )
+                    }
+                  />
+
+                  <EditField
+                    label="Interest Rate"
+                    type="number"
+                    step="0.01"
+                    value={
+                      editForm.interestRate
+                    }
+                    onChange={(value) =>
+                      handleEditChange(
+                        "interestRate",
+                        value
+                      )
+                    }
+                  />
+
+                  <EditField
+                    label="Loan Term (Months)"
+                    type="number"
+                    value={
+                      editForm.loanTermMonths
+                    }
+                    onChange={(value) =>
+                      handleEditChange(
+                        "loanTermMonths",
+                        value
+                      )
+                    }
+                  />
+
+                  <EditField
+                    label="Origination Date"
+                    type="date"
+                    value={
+                      editForm.originationDate
+                    }
+                    onChange={(value) =>
+                      handleEditChange(
+                        "originationDate",
+                        value
+                      )
+                    }
+                  />
+
+                  <EditField
+                    label="Maturity Date"
+                    type="date"
+                    value={
+                      editForm.maturityDate
+                    }
+                    onChange={(value) =>
+                      handleEditChange(
+                        "maturityDate",
+                        value
+                      )
+                    }
+                  />
+
+                  <EditField
+                    label="Loan Status"
+                    value={
+                      editForm.loanStatus
+                    }
+                    onChange={(value) =>
+                      handleEditChange(
+                        "loanStatus",
+                        value
+                      )
+                    }
+                  />
+
+                  <EditField
+                    label="Data Source"
+                    value={
+                      editForm.dataSource
+                    }
+                    onChange={(value) =>
+                      handleEditChange(
+                        "dataSource",
+                        value
+                      )
+                    }
+                  />
+
+                </div>
+
+                <div className="edit-form-actions">
+
+                  <button
+                    className="secondary-button"
+                    onClick={cancelEditing}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    className="primary-button"
+                    onClick={saveChanges}
+                    disabled={saving}
+                  >
+                    {saving
+                      ? "Saving Changes..."
+                      : "Save Changes"}
+                  </button>
+
+                </div>
+
+              </div>
+
+            ) : (
+
+              <div className="data-grid">
+
+                <DataItem
+                  label="Borrower"
+                  value={
+                    loan.borrowerName
+                  }
+                />
+
+                <DataItem
+                  label="Loan Number"
+                  value={
+                    loan.loanNumber
+                  }
+                />
+
+                <DataItem
+                  label="Original Amount"
+                  value={formatMoney(
+                    loan.originalLoanAmount
+                  )}
+                />
+
+                <DataItem
+                  label="Current Balance"
+                  value={formatMoney(
+                    loan.currentBalance
+                  )}
+                />
+
+                <DataItem
+                  label="Interest Rate"
+                  value={`${loan.interestRate}%`}
+                />
+
+                <DataItem
+                  label="Loan Term"
+                  value={`${loan.loanTermMonths} months`}
+                />
+
+                <DataItem
+                  label="Loan Status"
+                  value={
+                    loan.loanStatus
+                  }
+                />
+
+                <DataItem
+                  label="Data Source"
+                  value={
+                    loan.dataSource
+                  }
+                />
+
+                <DataItem
+                  label="Origination Date"
+                  value={formatDate(
+                    loan.originationDate
+                  )}
+                />
+
+                <DataItem
+                  label="Maturity Date"
+                  value={formatDate(
+                    loan.maturityDate
+                  )}
+                />
+
+              </div>
+            )}
+
+          </section>
+
+        </main>
+
+        {/* ===================================================
+            RIGHT COLUMN
+            =================================================== */}
+
+        <aside>
+
+          {/* =================================================
+              AI DECISION
+              ================================================= */}
+
+          <section className="panel decision-panel">
+
+            <div className="panel-label">
+              REVIEW DECISION
+            </div>
+
+            <h2>
+              What should happen?
+            </h2>
+
+            <p>
+              Choose the appropriate disposition
+              for this loan record.
+            </p>
+
+            {riskAnalysis && (
+              <div className="ai-decision-hint">
+
+                <span>
+                  AI RECOMMENDS
+                </span>
+
+                <strong
+                  className={getRecommendationClass(
+                    riskAnalysis.recommendation
+                  )}
+                >
+                  {riskAnalysis.recommendation.replaceAll(
+                    "_",
+                    " "
+                  )}
+                </strong>
+
+              </div>
+            )}
+
+            <button
+              className="decision approve"
+              disabled={
+                actionLoading ||
+                editing ||
+                loan.validationErrorCount > 0
+              }
+              onClick={() =>
+                reviewerAction("approve")
+              }
+            >
+              <span>
+                ✓
+              </span>
+
+              <div>
+                <strong>
+                  Approve
+                </strong>
+
+                <small>
+                  Mark record as verified
+                </small>
+              </div>
+            </button>
+
+            <button
+              className="decision review"
+              disabled={
+                actionLoading ||
+                editing
+              }
+              onClick={() =>
+                reviewerAction("review")
+              }
+            >
+              <span>
+                !
+              </span>
+
+              <div>
+                <strong>
+                  Needs Review
+                </strong>
+
+                <small>
+                  Keep exception open
+                </small>
+              </div>
+            </button>
+
+            <button
+              className="decision reject"
+              disabled={
+                actionLoading ||
+                editing
+              }
+              onClick={() =>
+                reviewerAction("reject")
+              }
+            >
+              <span>
+                ×
+              </span>
+
+              <div>
+                <strong>
+                  Reject
+                </strong>
+
+                <small>
+                  Mark record as rejected
+                </small>
+              </div>
+            </button>
+
+            {loan.validationErrorCount > 0 && (
+              <div className="decision-warning">
+                Validation errors must be resolved
+                before approval.
+              </div>
+            )}
+
+          </section>
+
+          {/* =================================================
+              DATA QUALITY
+              ================================================= */}
+
+          <section className="panel quality-panel">
+
+            <div className="panel-label">
+              DATA QUALITY
+            </div>
+
+            <div className="quality-score">
+
+              <div className="score-circle">
+
+                {validation
+                  ? validation.valid
+                    ? "100"
+                    : Math.max(
+                        0,
+                        100 -
+                          validation.errorCount *
+                            15
+                      )
+                  : loan.validationErrorCount === 0
+                    ? "100"
+                    : "—"}
+
+              </div>
+
+              <div>
+                <strong>
+                  Verification Score
+                </strong>
+
+                <p>
+                  Based on configured validation
+                  rules.
+                </p>
+              </div>
+
+            </div>
+
+            <div className="quality-row">
+
+              <span>
+                Validation errors
+              </span>
+
+              <strong>
+                {validation
+                  ? validation.errorCount
+                  : loan.validationErrorCount}
+              </strong>
+
+            </div>
+
+            <div className="quality-row">
+
+              <span>
+                Verification state
+              </span>
+
+              <strong>
+                {loan.verificationStatus.replaceAll(
+                  "_",
+                  " "
+                )}
+              </strong>
+
+            </div>
+
+          </section>
+
+          {/* =================================================
+              RISK SUMMARY
+              ================================================= */}
+
+          <section className="panel risk-summary-panel">
+
+            <div className="panel-label">
+              RISK SUMMARY
+            </div>
+
+            {riskAnalysis ? (
+              <>
+                <div className="mini-risk-score">
+
+                  <strong>
+                    {riskAnalysis.riskScore}
+                  </strong>
+
+                  <span>
+                    / 100
+                  </span>
+
+                </div>
+
+                <div className="summary-row">
+
+                  <span>
+                    Risk level
+                  </span>
+
+                  <strong
+                    className={getRiskLevelClass(
+                      riskAnalysis.riskLevel
+                    )}
+                  >
+                    {riskAnalysis.riskLevel}
+                  </strong>
+
+                </div>
+
+                <div className="summary-row">
+
+                  <span>
+                    Recommendation
+                  </span>
+
+                  <strong>
+                    {riskAnalysis.recommendation.replaceAll(
+                      "_",
+                      " "
+                    )}
+                  </strong>
+
+                </div>
+
+                <div className="summary-row">
+
+                  <span>
+                    Confidence
+                  </span>
+
+                  <strong>
+                    {riskAnalysis.confidence}%
+                  </strong>
+
+                </div>
+              </>
+            ) : (
+              <div className="risk-summary-empty">
+
+                <span>
+                  —
+                </span>
+
+                <p>
+                  Run risk analysis to view
+                  the AI assessment.
+                </p>
+
+              </div>
+            )}
+
+          </section>
+
+          {/* =================================================
+              AUDIT / TRACEABILITY
+              ================================================= */}
+
+          <section className="panel audit-panel">
+
+            <div className="panel-label">
+              TRACEABILITY
+            </div>
+
+            <h3>
+              Record Timeline
+            </h3>
+
+            <div className="timeline">
+
+              <div className="timeline-item">
+
+                <span></span>
+
+                <div>
+                  <strong>
+                    Record created
+                  </strong>
+
+                  <small>
+                    {formatDate(
+                      loan.createdAt
+                    )}
+                  </small>
+                </div>
+
+              </div>
+
+              <div className="timeline-item">
+
+                <span></span>
+
+                <div>
+                  <strong>
+                    Last updated
+                  </strong>
+
+                  <small>
+                    {formatDate(
+                      loan.updatedAt
+                    )}
+                  </small>
+                </div>
+
+              </div>
+
+            </div>
+
+          </section>
+
+        </aside>
+
+      </div>
+
+    </div>
+  );
+}
+
+/* =========================================================
+   EDIT FIELD
+   ========================================================= */
+
+function EditField({
+  label,
+  value,
+  onChange,
+  type = "text",
+  step,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  step?: string;
+}) {
+  return (
+    <label className="edit-field">
+
+      <span>
+        {label}
+      </span>
+
+      <input
+        type={type}
+        step={step}
+        value={value}
+        onChange={(event) =>
+          onChange(
+            event.target.value
+          )
+        }
+      />
+
+    </label>
+  );
+}
+
+/* =========================================================
+   DATA ITEM
+   ========================================================= */
+
+function DataItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="data-item">
+
+      <span>
+        {label}
+      </span>
+
+      <strong>
+        {value}
+      </strong>
+
+    </div>
+  );
+}
+
+export default Reviewer;

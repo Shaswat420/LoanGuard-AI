@@ -1,0 +1,4 @@
+loan_number,borrower_name,original_loan_amount,current_balance,interest_rate,loan_term_months,origination_date,maturity_date,loan_status
+LN-20001,Aarav Sharma,500000,425000,8.5,60,2025-01-15,2030-01-15,ACTIVE
+LN-20002,Priya Singh,750000,680000,7.25,84,2024-06-10,2031-06-10,ACTIVE
+LN-20003,Rohan Kumar,300000,250000,9.1,48,2025-03-01,2029-03-01,ACTIVE

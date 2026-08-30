@@ -1,0 +1,627 @@
+.loan-page {
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  background: #07090d;
+  color: #e8edf3;
+  padding: 38px;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.loan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.eyebrow {
+  color: #5ee4c1;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.loan-header h1 {
+  margin: 7px 0;
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.6px;
+}
+
+.loan-header p {
+  margin: 0;
+  color: #747d89;
+  font-size: 13px;
+}
+
+/* =========================
+   UPLOAD BUTTON
+========================= */
+
+.upload-button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  border: 0;
+  border-radius: 7px;
+
+  padding: 11px 17px;
+
+  background: #5ee4c1;
+  color: #06110e;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  cursor: pointer;
+  white-space: nowrap;
+
+  transition: 0.2s ease;
+}
+
+.upload-button:hover {
+  background: #73ead0;
+  transform: translateY(-1px);
+}
+
+/* =========================
+   STATISTICS
+========================= */
+
+.loan-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 17px;
+}
+
+.stat-card {
+  background: #0c1016;
+  border: 1px solid #1d232c;
+  border-radius: 9px;
+  padding: 20px;
+
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.stat-card:hover {
+  border-color: #29333d;
+  transform: translateY(-2px);
+}
+
+.stat-card span {
+  display: block;
+  margin-bottom: 11px;
+
+  color: #707987;
+  font-size: 11px;
+}
+
+.stat-card strong {
+  display: block;
+  margin-bottom: 6px;
+
+  color: #e8edf3;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.stat-card small {
+  color: #626b77;
+  font-size: 10px;
+}
+
+.stat-card .positive {
+  color: #5ee4c1;
+}
+
+.stat-card .warning-text {
+  color: #e5c05b;
+}
+
+.rejected-number {
+  color: #e17b7b !important;
+}
+
+/* =========================
+   MAIN RECORDS CARD
+========================= */
+
+.records-card {
+  overflow: hidden;
+
+  background: #0c1016;
+  border: 1px solid #1d232c;
+  border-radius: 10px;
+}
+
+/* =========================
+   TOOLBAR
+========================= */
+
+.records-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 20px;
+
+  padding: 16px;
+
+  border-bottom: 1px solid #1d232c;
+}
+
+.search-box {
+  width: 360px;
+  min-width: 200px;
+  height: 38px;
+
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+  padding: 0 11px;
+
+  background: #080b10;
+  border: 1px solid #242b35;
+  border-radius: 6px;
+
+  transition: border-color 0.2s ease;
+}
+
+.search-box:focus-within {
+  border-color: #416e63;
+}
+
+.search-icon {
+  color: #626b77;
+  font-size: 18px;
+}
+
+.search-box input {
+  width: 100%;
+  min-width: 0;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+
+  color: #e8edf3;
+  font-size: 11px;
+}
+
+.search-box input::placeholder {
+  color: #525b67;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter {
+  border: 1px solid #252c36;
+  border-radius: 6px;
+
+  padding: 8px 12px;
+
+  background: transparent;
+
+  color: #727b87;
+
+  font-size: 10px;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.filter:hover {
+  border-color: #3b514c;
+  color: #a9b5b3;
+}
+
+.filter.active {
+  border-color: #27534a;
+  background: #13201f;
+  color: #5ee4c1;
+}
+
+/* =========================
+   ERROR
+========================= */
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding: 13px 17px;
+
+  background: #211313;
+  border-bottom: 1px solid #402323;
+
+  color: #e99a9a;
+
+  font-size: 11px;
+}
+
+.error-banner strong {
+  color: #f0b1b1;
+}
+
+.error-banner button {
+  border: 1px solid #563232;
+  border-radius: 5px;
+
+  padding: 6px 10px;
+
+  background: transparent;
+
+  color: #e99a9a;
+
+  font-size: 10px;
+
+  cursor: pointer;
+}
+
+.error-banner button:hover {
+  background: #2a1717;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 1050px;
+
+  border-collapse: collapse;
+}
+
+thead {
+  background: #0a0d12;
+}
+
+th {
+  padding: 13px 16px;
+
+  border-bottom: 1px solid #1d232c;
+
+  text-align: left;
+
+  color: #59626e;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.8px;
+
+  white-space: nowrap;
+}
+
+td {
+  padding: 15px 16px;
+
+  border-bottom: 1px solid #171c24;
+
+  color: #aeb5be;
+
+  font-size: 11px;
+
+  white-space: nowrap;
+}
+
+tbody tr {
+  transition: background 0.15s ease;
+}
+
+tbody tr:hover {
+  background: #0e131a;
+}
+
+/* =========================
+   LOAN DATA
+========================= */
+
+.loan-id {
+  color: #5ee4c1;
+
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.borrower {
+  color: #e1e6eb;
+  font-weight: 600;
+}
+
+.updated {
+  color: #5c6571;
+}
+
+.issue {
+  color: #d2b35a;
+}
+
+.issue-clean {
+  color: #5b9586;
+}
+
+/* =========================
+   STATUS
+========================= */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 6px;
+
+  padding: 5px 8px;
+
+  border-radius: 5px;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+.status-dot {
+  width: 5px;
+  height: 5px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+}
+
+.status-verified {
+  color: #5ee4c1;
+  background: #10211e;
+}
+
+.status-verified .status-dot {
+  background: #5ee4c1;
+}
+
+.status-exception {
+  color: #e4bd54;
+  background: #211d11;
+}
+
+.status-exception .status-dot {
+  background: #e4bd54;
+}
+
+.status-pending {
+  color: #8ea8d8;
+  background: #111925;
+}
+
+.status-pending .status-dot {
+  background: #8ea8d8;
+}
+
+.status-rejected {
+  color: #e17b7b;
+  background: #241416;
+}
+
+.status-rejected .status-dot {
+  background: #e17b7b;
+}
+
+/* =========================
+   ACTION
+========================= */
+
+.view-button {
+  border: 1px solid #29313b;
+  border-radius: 5px;
+
+  padding: 6px 10px;
+
+  background: transparent;
+
+  color: #8d96a2;
+
+  font-size: 9px;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.view-button:hover {
+  border-color: #5ee4c1;
+
+  background: #0d1917;
+
+  color: #5ee4c1;
+
+  transform: translateY(-1px);
+}
+
+/* =========================
+   LOADING
+========================= */
+
+.loading-state {
+  min-height: 250px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 15px;
+
+  color: #626b77;
+
+  font-size: 12px;
+}
+
+.loading-spinner {
+  width: 28px;
+  height: 28px;
+
+  border: 2px solid #1d252d;
+  border-top-color: #5ee4c1;
+
+  border-radius: 50%;
+
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+
+.empty-state {
+  min-height: 260px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  color: #626b77;
+}
+
+.empty-icon {
+  width: 46px;
+  height: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 15px;
+
+  border: 1px solid #252d37;
+  border-radius: 50%;
+
+  color: #5ee4c1;
+
+  font-size: 22px;
+}
+
+.empty-state strong {
+  margin-bottom: 7px;
+
+  color: #aeb5be;
+
+  font-size: 13px;
+}
+
+.empty-state p {
+  margin: 0;
+
+  color: #555e6a;
+
+  font-size: 11px;
+}
+
+/* =========================
+   FOOTER
+========================= */
+
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 20px;
+
+  padding: 14px 17px;
+
+  color: #59626e;
+
+  font-size: 10px;
+}
+
+.table-footer strong {
+  color: #aeb8c2;
+}
+
+.table-footer .normalized {
+  color: #5ee4c1;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 900px) {
+  .loan-page {
+    padding: 24px;
+  }
+
+  .loan-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .records-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .loan-page {
+    padding: 18px;
+  }
+
+  .loan-header {
+    flex-direction: column;
+  }
+
+  .loan-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .table-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .error-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
