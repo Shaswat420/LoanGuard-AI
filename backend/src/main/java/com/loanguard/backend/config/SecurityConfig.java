@@ -45,11 +45,8 @@ public class SecurityConfig {
             JwtAuthenticationFilter jwtAuthenticationFilter,
             UserRepository userRepository) {
 
-        this.jwtAuthenticationFilter =
-                jwtAuthenticationFilter;
-
-        this.userRepository =
-                userRepository;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.userRepository = userRepository;
     }
 
     // =========================================================
@@ -58,7 +55,6 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-
         return new BCryptPasswordEncoder();
     }
 
@@ -71,23 +67,13 @@ public class SecurityConfig {
 
         return username ->
                 userRepository
-                        .findByEmail(
-                                username.trim().toLowerCase()
-                        )
+                        .findByEmail(username.trim().toLowerCase())
                         .map(user ->
                                 org.springframework.security.core.userdetails.User
-                                        .withUsername(
-                                                user.getEmail()
-                                        )
-                                        .password(
-                                                user.getPassword()
-                                        )
-                                        .roles(
-                                                user.getRole().name()
-                                        )
-                                        .disabled(
-                                                !user.isEnabled()
-                                        )
+                                        .withUsername(user.getEmail())
+                                        .password(user.getPassword())
+                                        .roles(user.getRole().name())
+                                        .disabled(!user.isEnabled())
                                         .build()
                         )
                         .orElseThrow(() ->
@@ -107,13 +93,9 @@ public class SecurityConfig {
             PasswordEncoder passwordEncoder) {
 
         DaoAuthenticationProvider provider =
-                new DaoAuthenticationProvider(
-                        userDetailsService
-                );
+                new DaoAuthenticationProvider(userDetailsService);
 
-        provider.setPasswordEncoder(
-                passwordEncoder
-        );
+        provider.setPasswordEncoder(passwordEncoder);
 
         return provider;
     }
@@ -156,9 +138,7 @@ public class SecurityConfig {
                 // CSRF
                 // =================================================
 
-                .csrf(csrf ->
-                        csrf.disable()
-                )
+                .csrf(csrf -> csrf.disable())
 
                 // =================================================
                 // STATELESS JWT SESSION
@@ -174,9 +154,7 @@ public class SecurityConfig {
                 // AUTH PROVIDER
                 // =================================================
 
-                .authenticationProvider(
-                        authenticationProvider
-                )
+                .authenticationProvider(authenticationProvider)
 
                 // =================================================
                 // AUTHORIZATION
@@ -184,27 +162,18 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // -----------------------------------------
                         // LOGIN / AUTH
-                        // -----------------------------------------
-
                         .requestMatchers(
                                 "/api/auth/**"
                         ).permitAll()
 
-                        // -----------------------------------------
                         // CORS PREFLIGHT
-                        // -----------------------------------------
-
                         .requestMatchers(
                                 HttpMethod.OPTIONS,
                                 "/**"
                         ).permitAll()
 
-                        // -----------------------------------------
                         // REVIEWER
-                        // -----------------------------------------
-
                         .requestMatchers(
                                 "/api/reviewer/**"
                         ).hasAnyRole(
@@ -212,10 +181,7 @@ public class SecurityConfig {
                                 "REVIEWER"
                         )
 
-                        // -----------------------------------------
                         // RISK
-                        // -----------------------------------------
-
                         .requestMatchers(
                                 "/api/risk/**"
                         ).hasAnyRole(
@@ -224,10 +190,7 @@ public class SecurityConfig {
                                 "ANALYST"
                         )
 
-                        // -----------------------------------------
                         // AUDIT
-                        // -----------------------------------------
-
                         .requestMatchers(
                                 "/api/audit/**"
                         ).hasAnyRole(
@@ -236,20 +199,13 @@ public class SecurityConfig {
                                 "ANALYST"
                         )
 
-                        // -----------------------------------------
-                        // LOAN DELETE
-                        // ADMIN ONLY
-                        // -----------------------------------------
-
+                        // LOAN DELETE - ADMIN ONLY
                         .requestMatchers(
                                 HttpMethod.DELETE,
                                 "/api/loans/**"
                         ).hasRole("ADMIN")
 
-                        // -----------------------------------------
                         // LOAN READ
-                        // -----------------------------------------
-
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/loans/**"
@@ -259,10 +215,7 @@ public class SecurityConfig {
                                 "ANALYST"
                         )
 
-                        // -----------------------------------------
-                        // LOAN CREATE / UPDATE / VALIDATE
-                        // -----------------------------------------
-
+                        // LOAN CREATE
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/loans/**"
@@ -271,6 +224,7 @@ public class SecurityConfig {
                                 "REVIEWER"
                         )
 
+                        // LOAN UPDATE
                         .requestMatchers(
                                 HttpMethod.PUT,
                                 "/api/loans/**"
@@ -279,10 +233,7 @@ public class SecurityConfig {
                                 "REVIEWER"
                         )
 
-                        // -----------------------------------------
                         // EVERYTHING ELSE
-                        // -----------------------------------------
-
                         .anyRequest()
                         .authenticated()
                 )
@@ -309,12 +260,15 @@ public class SecurityConfig {
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
+        // Allowed frontend URLs
         configuration.setAllowedOrigins(
                 List.of(
-                        "http://localhost:5173"
+                        "http://localhost:5173",
+                        "https://loan-guard-ai-five.vercel.app"
                 )
         );
 
+        // Allowed HTTP methods
         configuration.setAllowedMethods(
                 List.of(
                         "GET",
@@ -325,20 +279,19 @@ public class SecurityConfig {
                 )
         );
 
+        // Allow all request headers
         configuration.setAllowedHeaders(
-                List.of(
-                        "Authorization",
-                        "Content-Type",
-                        "Accept"
-                )
+                List.of("*")
         );
 
+        // Headers accessible to frontend
         configuration.setExposedHeaders(
                 List.of(
                         "Authorization"
                 )
         );
 
+        // Allow credentials
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =
