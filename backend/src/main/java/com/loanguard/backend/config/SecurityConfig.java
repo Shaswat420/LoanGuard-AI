@@ -40,10 +40,11 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserRepository userRepository;
 
+
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
-            UserRepository userRepository) {
-
+            UserRepository userRepository
+    ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.userRepository = userRepository;
     }
@@ -93,7 +94,8 @@ public class SecurityConfig {
     @Bean
     public AuthenticationProvider authenticationProvider(
             UserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder
+    ) {
 
         DaoAuthenticationProvider provider =
                 new DaoAuthenticationProvider(userDetailsService);
@@ -136,23 +138,24 @@ public class SecurityConfig {
                         )
                 )
 
-                // Disable CSRF for JWT API
+                // Disable CSRF because JWT authentication is used
                 .csrf(csrf -> csrf.disable())
 
-                // Stateless session for JWT
+                // Stateless session
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
 
-                // Authentication Provider
+                // Authentication provider
                 .authenticationProvider(authenticationProvider)
 
-                // Authorization Rules
+                // Authorization rules
                 .authorizeHttpRequests(auth -> auth
 
-                        // Allow CORS preflight requests
+                        // IMPORTANT:
+                        // Allow ALL CORS preflight OPTIONS requests
                         .requestMatchers(
                                 HttpMethod.OPTIONS,
                                 "/**"
@@ -248,24 +251,35 @@ public class SecurityConfig {
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
-        /*
-         * Allow your Vercel frontend
-         */
+
+        // =====================================================
+        // ALLOWED FRONTEND ORIGINS
+        // =====================================================
+
         configuration.setAllowedOriginPatterns(
                 List.of(
 
+                        // Your production Vercel frontend
                         "https://loan-guard-ai-five.vercel.app",
 
-                        // Other possible Vercel deployments
+                        // Other Vercel deployments
                         "https://*.vercel.app",
 
                         // Local development
                         "http://localhost:5173",
+
+                        // Other localhost ports
                         "http://localhost:*",
+
+                        // Local IP development
                         "http://127.0.0.1:*"
                 )
         );
 
+
+        // =====================================================
+        // ALLOWED HTTP METHODS
+        // =====================================================
 
         configuration.setAllowedMethods(
                 List.of(
@@ -279,10 +293,20 @@ public class SecurityConfig {
         );
 
 
+        // =====================================================
+        // ALLOWED HEADERS
+        // =====================================================
+
         configuration.setAllowedHeaders(
-                List.of("*")
+                List.of(
+                        "*"
+                )
         );
 
+
+        // =====================================================
+        // EXPOSED HEADERS
+        // =====================================================
 
         configuration.setExposedHeaders(
                 List.of(
@@ -291,15 +315,20 @@ public class SecurityConfig {
         );
 
 
-        /*
-         * JWT is sent using Authorization header,
-         * so cookies are not required.
-         */
+        // JWT is sent through Authorization header,
+        // not cookies
         configuration.setAllowCredentials(false);
 
 
-        configuration.setMaxAge(3600L);
+        // Cache preflight request for 1 hour
+        configuration.setMaxAge(
+                3600L
+        );
 
+
+        // =====================================================
+        // APPLY CORS TO ALL ENDPOINTS
+        // =====================================================
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
