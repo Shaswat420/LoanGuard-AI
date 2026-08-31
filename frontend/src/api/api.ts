@@ -1,4 +1,4 @@
-const API_URL = "https://loan-guard-backend.onrender.com/api";
+const API_URL = "https://loanguard-ai-2y9l.onrender.com/api";
 
 /**
  * Centralized authenticated API client.
@@ -14,15 +14,12 @@ export async function apiFetch(
 
   headers.set("Accept", "application/json");
 
-  // Only add Content-Type when sending JSON.
-  if (
-    options.body &&
-    !(options.body instanceof FormData)
-  ) {
+  // Add JSON Content-Type unless using FormData
+  if (options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
-  // Add JWT token.
+  // Add JWT token
   if (token) {
     headers.set(
       "Authorization",
@@ -38,11 +35,9 @@ export async function apiFetch(
     }
   );
 
-  // Handle expired/invalid authentication.
-  if (
-    response.status === 401 ||
-    response.status === 403
-  ) {
+  // Handle authentication errors
+  if (response.status === 401 || response.status === 403) {
+
     localStorage.removeItem("loanguard_token");
     localStorage.removeItem("loanguard_user");
 
