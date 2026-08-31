@@ -18,20 +18,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/loans")
-@CrossOrigin(
-        origins = {
-                "https://loan-guard-ai-five.vercel.app",
-                "http://localhost:5173"
-        },
-        allowedHeaders = "*",
-        methods = {
-                RequestMethod.GET,
-                RequestMethod.POST,
-                RequestMethod.PUT,
-                RequestMethod.DELETE,
-                RequestMethod.OPTIONS
-        }
-)
 public class LoanController {
 
     private final LoanRepository loanRepository;
@@ -41,8 +27,8 @@ public class LoanController {
     public LoanController(
             LoanRepository loanRepository,
             LoanValidationService validationService,
-            AuditLogService auditLogService) {
-
+            AuditLogService auditLogService
+    ) {
         this.loanRepository = loanRepository;
         this.validationService = validationService;
         this.auditLogService = auditLogService;
@@ -55,9 +41,9 @@ public class LoanController {
     @GetMapping
     public ResponseEntity<List<Loan>> getAllLoans() {
 
-        return ResponseEntity.ok(
-                loanRepository.findAll()
-        );
+        List<Loan> loans = loanRepository.findAll();
+
+        return ResponseEntity.ok(loans);
     }
 
     // =========================================================
@@ -66,21 +52,19 @@ public class LoanController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getLoan(
-            @PathVariable Long id) {
+            @PathVariable Long id
+    ) {
 
         Optional<Loan> optionalLoan =
                 loanRepository.findById(id);
 
         if (optionalLoan.isEmpty()) {
-
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .body(message("Loan not found"));
         }
 
-        return ResponseEntity.ok(
-                optionalLoan.get()
-        );
+        return ResponseEntity.ok(optionalLoan.get());
     }
 
     // =========================================================
@@ -89,9 +73,10 @@ public class LoanController {
 
     @PostMapping
     public ResponseEntity<?> createLoan(
-            @RequestBody Loan loan) {
+            @RequestBody Loan loan
+    ) {
 
-        // Duplicate loan number check
+        // Check duplicate loan number
 
         if (loan.getLoanNumber() != null &&
                 loanRepository
@@ -112,7 +97,7 @@ public class LoanController {
         ValidationResult validation =
                 validationService.validate(loan);
 
-        // Store validation result
+        // Store validation error count
 
         loan.setValidationErrorCount(
                 validation.getErrorCount()
@@ -138,7 +123,7 @@ public class LoanController {
         Loan savedLoan =
                 loanRepository.save(loan);
 
-        // Audit
+        // Audit log
 
         auditLogService.log(
                 savedLoan,
@@ -147,15 +132,12 @@ public class LoanController {
                 "SYSTEM"
         );
 
-        // Response
+        // Build response
 
         Map<String, Object> response =
                 new HashMap<>();
 
-        response.put(
-                "loan",
-                savedLoan
-        );
+        response.put("loan", savedLoan);
 
         response.put(
                 "valid",
@@ -183,7 +165,8 @@ public class LoanController {
 
     @PostMapping("/{id}/verify")
     public ResponseEntity<?> verifyLoan(
-            @PathVariable Long id) {
+            @PathVariable Long id
+    ) {
 
         Optional<Loan> optionalLoan =
                 loanRepository.findById(id);
@@ -195,19 +178,20 @@ public class LoanController {
                     .body(message("Loan not found"));
         }
 
-        Loan loan =
-                optionalLoan.get();
+        Loan loan = optionalLoan.get();
 
         // Run validation
 
         ValidationResult validation =
                 validationService.validate(loan);
 
-        // Update validation count
+        // Update validation error count
 
         loan.setValidationErrorCount(
                 validation.getErrorCount()
         );
+
+        // Update verification status
 
         if (validation.isValid()) {
 
@@ -227,7 +211,7 @@ public class LoanController {
         Loan savedLoan =
                 loanRepository.save(loan);
 
-        // Audit
+        // Audit log
 
         auditLogService.log(
                 savedLoan,
@@ -238,15 +222,10 @@ public class LoanController {
                 "SYSTEM"
         );
 
-        // Response
-
         Map<String, Object> response =
                 new HashMap<>();
 
-        response.put(
-                "loan",
-                savedLoan
-        );
+        response.put("loan", savedLoan);
 
         response.put(
                 "valid",
@@ -272,7 +251,8 @@ public class LoanController {
 
     @PostMapping("/{id}/validate")
     public ResponseEntity<?> validateLoan(
-            @PathVariable Long id) {
+            @PathVariable Long id
+    ) {
 
         Optional<Loan> optionalLoan =
                 loanRepository.findById(id);
@@ -284,8 +264,7 @@ public class LoanController {
                     .body(message("Loan not found"));
         }
 
-        Loan loan =
-                optionalLoan.get();
+        Loan loan = optionalLoan.get();
 
         // Run validation
 
@@ -304,8 +283,8 @@ public class LoanController {
 
         if (validation.isValid()) {
 
-            if (loan.getVerificationStatus() !=
-                    VerificationStatus.VERIFIED) {
+            if (loan.getVerificationStatus()
+                    != VerificationStatus.VERIFIED) {
 
                 loan.setVerificationStatus(
                         VerificationStatus.PENDING
@@ -334,8 +313,6 @@ public class LoanController {
                         + " validation issue(s) detected.",
                 "SYSTEM"
         );
-
-        // Response
 
         Map<String, Object> response =
                 new HashMap<>();
@@ -375,7 +352,8 @@ public class LoanController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateLoan(
             @PathVariable Long id,
-            @RequestBody Loan updatedLoan) {
+            @RequestBody Loan updatedLoan
+    ) {
 
         Optional<Loan> optionalLoan =
                 loanRepository.findById(id);
@@ -390,15 +368,17 @@ public class LoanController {
         Loan existingLoan =
                 optionalLoan.get();
 
-        // Duplicate loan number check
+        // Check duplicate loan number
 
         Optional<Loan> duplicateLoan =
                 loanRepository.findByLoanNumber(
                         updatedLoan.getLoanNumber()
                 );
 
-        if (duplicateLoan.isPresent() &&
-                !duplicateLoan.get().getId().equals(id)) {
+        if (duplicateLoan.isPresent()
+                && !duplicateLoan.get()
+                .getId()
+                .equals(id)) {
 
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)
@@ -451,7 +431,7 @@ public class LoanController {
                 updatedLoan.getDataSource()
         );
 
-        // Reset verification
+        // Reset verification after modification
 
         existingLoan.setVerificationStatus(
                 VerificationStatus.PENDING
@@ -473,20 +453,12 @@ public class LoanController {
                 "REVIEWER"
         );
 
-        // Response
-
         Map<String, Object> response =
                 new HashMap<>();
 
-        response.put(
-                "loan",
-                savedLoan
-        );
+        response.put("loan", savedLoan);
 
-        response.put(
-                "valid",
-                false
-        );
+        response.put("valid", false);
 
         response.put(
                 "validationErrorCount",
@@ -512,7 +484,8 @@ public class LoanController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteLoan(
-            @PathVariable Long id) {
+            @PathVariable Long id
+    ) {
 
         Optional<Loan> optionalLoan =
                 loanRepository.findById(id);
@@ -524,8 +497,7 @@ public class LoanController {
                     .body(message("Loan not found"));
         }
 
-        Loan loan =
-                optionalLoan.get();
+        Loan loan = optionalLoan.get();
 
         // Audit before deleting
 
@@ -536,7 +508,7 @@ public class LoanController {
                 "SYSTEM"
         );
 
-        // Delete loan
+        // Delete
 
         loanRepository.delete(loan);
 
@@ -550,15 +522,13 @@ public class LoanController {
     // =========================================================
 
     private Map<String, String> message(
-            String text) {
+            String text
+    ) {
 
         Map<String, String> response =
                 new HashMap<>();
 
-        response.put(
-                "message",
-                text
-        );
+        response.put("message", text);
 
         return response;
     }
