@@ -18,7 +18,20 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/loans")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(
+        origins = {
+                "https://loan-guard-ai-five.vercel.app",
+                "http://localhost:5173"
+        },
+        allowedHeaders = "*",
+        methods = {
+                RequestMethod.GET,
+                RequestMethod.POST,
+                RequestMethod.PUT,
+                RequestMethod.DELETE,
+                RequestMethod.OPTIONS
+        }
+)
 public class LoanController {
 
     private final LoanRepository loanRepository;
@@ -78,9 +91,7 @@ public class LoanController {
     public ResponseEntity<?> createLoan(
             @RequestBody Loan loan) {
 
-        // -----------------------------------------------------
         // Duplicate loan number check
-        // -----------------------------------------------------
 
         if (loan.getLoanNumber() != null &&
                 loanRepository
@@ -96,27 +107,18 @@ public class LoanController {
                     );
         }
 
-        // -----------------------------------------------------
         // Run validation
-        // -----------------------------------------------------
 
         ValidationResult validation =
                 validationService.validate(loan);
 
-        // -----------------------------------------------------
         // Store validation result
-        // -----------------------------------------------------
 
         loan.setValidationErrorCount(
                 validation.getErrorCount()
         );
 
-        /*
-         * A newly created loan can be automatically verified
-         * only when the initial validation passes.
-         *
-         * If validation fails, it requires human review.
-         */
+        // Set verification status
 
         if (validation.isValid()) {
 
@@ -131,16 +133,12 @@ public class LoanController {
             );
         }
 
-        // -----------------------------------------------------
         // Save loan
-        // -----------------------------------------------------
 
         Loan savedLoan =
                 loanRepository.save(loan);
 
-        // -----------------------------------------------------
-        // Audit: RECORD CREATED
-        // -----------------------------------------------------
+        // Audit
 
         auditLogService.log(
                 savedLoan,
@@ -149,9 +147,7 @@ public class LoanController {
                 "SYSTEM"
         );
 
-        // -----------------------------------------------------
-        // Return detailed response
-        // -----------------------------------------------------
+        // Response
 
         Map<String, Object> response =
                 new HashMap<>();
@@ -202,16 +198,12 @@ public class LoanController {
         Loan loan =
                 optionalLoan.get();
 
-        // -----------------------------------------------------
         // Run validation
-        // -----------------------------------------------------
 
         ValidationResult validation =
                 validationService.validate(loan);
 
-        // -----------------------------------------------------
         // Update validation count
-        // -----------------------------------------------------
 
         loan.setValidationErrorCount(
                 validation.getErrorCount()
@@ -230,16 +222,12 @@ public class LoanController {
             );
         }
 
-        // -----------------------------------------------------
         // Save
-        // -----------------------------------------------------
 
         Loan savedLoan =
                 loanRepository.save(loan);
 
-        // -----------------------------------------------------
         // Audit
-        // -----------------------------------------------------
 
         auditLogService.log(
                 savedLoan,
@@ -250,9 +238,7 @@ public class LoanController {
                 "SYSTEM"
         );
 
-        // -----------------------------------------------------
         // Response
-        // -----------------------------------------------------
 
         Map<String, Object> response =
                 new HashMap<>();
@@ -301,43 +287,22 @@ public class LoanController {
         Loan loan =
                 optionalLoan.get();
 
-        // -----------------------------------------------------
         // Run validation
-        // -----------------------------------------------------
 
         ValidationResult validation =
                 validationService.validate(loan);
 
-        // -----------------------------------------------------
-        // IMPORTANT
-        //
-        // Validation updates the stored validation count,
-        // but DOES NOT automatically approve the loan.
-        //
-        // The reviewer must explicitly approve it.
-        // -----------------------------------------------------
+        // Update validation count
 
         loan.setValidationErrorCount(
                 validation.getErrorCount()
         );
 
         /*
-         * Keep the loan PENDING while the reviewer is
-         * performing the verification workflow.
-         *
-         * If validation fails, it becomes NEEDS_REVIEW.
-         *
-         * If validation passes, it remains PENDING until
-         * the reviewer explicitly clicks Approve.
+         * Validation does not automatically approve a loan.
          */
 
         if (validation.isValid()) {
-
-            /*
-             * Do not automatically set VERIFIED here.
-             *
-             * The reviewer must make the final decision.
-             */
 
             if (loan.getVerificationStatus() !=
                     VerificationStatus.VERIFIED) {
@@ -354,16 +319,12 @@ public class LoanController {
             );
         }
 
-        // -----------------------------------------------------
-        // Save validation state
-        // -----------------------------------------------------
+        // Save
 
         Loan savedLoan =
                 loanRepository.save(loan);
 
-        // -----------------------------------------------------
-        // Audit validation
-        // -----------------------------------------------------
+        // Audit
 
         auditLogService.log(
                 savedLoan,
@@ -374,9 +335,7 @@ public class LoanController {
                 "SYSTEM"
         );
 
-        // -----------------------------------------------------
         // Response
-        // -----------------------------------------------------
 
         Map<String, Object> response =
                 new HashMap<>();
@@ -431,9 +390,7 @@ public class LoanController {
         Loan existingLoan =
                 optionalLoan.get();
 
-        // -----------------------------------------------------
         // Duplicate loan number check
-        // -----------------------------------------------------
 
         Optional<Loan> duplicateLoan =
                 loanRepository.findByLoanNumber(
@@ -452,9 +409,7 @@ public class LoanController {
                     );
         }
 
-        // -----------------------------------------------------
-        // Update editable fields
-        // -----------------------------------------------------
+        // Update fields
 
         existingLoan.setLoanNumber(
                 updatedLoan.getLoanNumber()
@@ -496,37 +451,20 @@ public class LoanController {
                 updatedLoan.getDataSource()
         );
 
-        // -----------------------------------------------------
-        // IMPORTANT:
-        //
-        // Any modification invalidates the previous
-        // verification decision.
-        //
-        // Therefore ALWAYS reset to PENDING.
-        // -----------------------------------------------------
+        // Reset verification
 
         existingLoan.setVerificationStatus(
                 VerificationStatus.PENDING
         );
 
-        // -----------------------------------------------------
-        // Reset validation count.
-        //
-        // Validation must be explicitly run again.
-        // -----------------------------------------------------
-
         existingLoan.setValidationErrorCount(0);
 
-        // -----------------------------------------------------
-        // Save updated record
-        // -----------------------------------------------------
+        // Save
 
         Loan savedLoan =
                 loanRepository.save(existingLoan);
 
-        // -----------------------------------------------------
-        // Audit update
-        // -----------------------------------------------------
+        // Audit
 
         auditLogService.log(
                 savedLoan,
@@ -535,9 +473,7 @@ public class LoanController {
                 "REVIEWER"
         );
 
-        // -----------------------------------------------------
         // Response
-        // -----------------------------------------------------
 
         Map<String, Object> response =
                 new HashMap<>();
@@ -591,9 +527,7 @@ public class LoanController {
         Loan loan =
                 optionalLoan.get();
 
-        // -----------------------------------------------------
-        // Audit BEFORE deleting
-        // -----------------------------------------------------
+        // Audit before deleting
 
         auditLogService.log(
                 loan,
@@ -602,15 +536,9 @@ public class LoanController {
                 "SYSTEM"
         );
 
-        // -----------------------------------------------------
-        // Delete
-        // -----------------------------------------------------
+        // Delete loan
 
         loanRepository.delete(loan);
-
-        // -----------------------------------------------------
-        // Response
-        // -----------------------------------------------------
 
         return ResponseEntity.ok(
                 message("Loan deleted successfully.")
@@ -618,7 +546,7 @@ public class LoanController {
     }
 
     // =========================================================
-    // HELPER
+    // HELPER METHOD
     // =========================================================
 
     private Map<String, String> message(
