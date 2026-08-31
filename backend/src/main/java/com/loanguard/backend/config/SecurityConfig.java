@@ -40,7 +40,6 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserRepository userRepository;
 
-
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
             UserRepository userRepository
@@ -50,19 +49,11 @@ public class SecurityConfig {
     }
 
 
-    // =========================================================
-    // PASSWORD ENCODER
-    // =========================================================
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-
-    // =========================================================
-    // USER DETAILS SERVICE
-    // =========================================================
 
     @Bean
     public UserDetailsService userDetailsService() {
@@ -87,10 +78,6 @@ public class SecurityConfig {
     }
 
 
-    // =========================================================
-    // AUTHENTICATION PROVIDER
-    // =========================================================
-
     @Bean
     public AuthenticationProvider authenticationProvider(
             UserDetailsService userDetailsService,
@@ -98,17 +85,15 @@ public class SecurityConfig {
     ) {
 
         DaoAuthenticationProvider provider =
-                new DaoAuthenticationProvider(userDetailsService);
+                new DaoAuthenticationProvider(
+                        userDetailsService
+                );
 
         provider.setPasswordEncoder(passwordEncoder);
 
         return provider;
     }
 
-
-    // =========================================================
-    // AUTHENTICATION MANAGER
-    // =========================================================
 
     @Bean
     public AuthenticationManager authenticationManager(
@@ -119,10 +104,6 @@ public class SecurityConfig {
     }
 
 
-    // =========================================================
-    // SECURITY FILTER CHAIN
-    // =========================================================
-
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
@@ -132,16 +113,16 @@ public class SecurityConfig {
         http
 
                 // Enable CORS
-                .cors(cors ->
-                        cors.configurationSource(
+                .cors(cors -> cors
+                        .configurationSource(
                                 corsConfigurationSource()
                         )
                 )
 
-                // Disable CSRF because JWT authentication is used
+                // Disable CSRF because this is a stateless JWT API
                 .csrf(csrf -> csrf.disable())
 
-                // Stateless session
+                // Stateless JWT authentication
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
@@ -149,13 +130,15 @@ public class SecurityConfig {
                 )
 
                 // Authentication provider
-                .authenticationProvider(authenticationProvider)
+                .authenticationProvider(
+                        authenticationProvider
+                )
 
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
 
                         // IMPORTANT:
-                        // Allow ALL CORS preflight OPTIONS requests
+                        // Allow all CORS preflight requests.
                         .requestMatchers(
                                 HttpMethod.OPTIONS,
                                 "/**"
@@ -166,7 +149,7 @@ public class SecurityConfig {
                                 "/api/auth/**"
                         ).permitAll()
 
-                        // REVIEWER APIs
+                        // Reviewer APIs
                         .requestMatchers(
                                 "/api/reviewer/**"
                         ).hasAnyRole(
@@ -174,7 +157,7 @@ public class SecurityConfig {
                                 "REVIEWER"
                         )
 
-                        // RISK APIs
+                        // Risk APIs
                         .requestMatchers(
                                 "/api/risk/**"
                         ).hasAnyRole(
@@ -183,7 +166,7 @@ public class SecurityConfig {
                                 "ANALYST"
                         )
 
-                        // AUDIT APIs
+                        // Audit APIs
                         .requestMatchers(
                                 "/api/audit/**"
                         ).hasAnyRole(
@@ -192,13 +175,13 @@ public class SecurityConfig {
                                 "ANALYST"
                         )
 
-                        // DELETE LOANS — ADMIN ONLY
+                        // Delete loans
                         .requestMatchers(
                                 HttpMethod.DELETE,
                                 "/api/loans/**"
                         ).hasRole("ADMIN")
 
-                        // GET LOANS
+                        // Read loans
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/loans/**"
@@ -208,7 +191,7 @@ public class SecurityConfig {
                                 "ANALYST"
                         )
 
-                        // CREATE LOANS
+                        // Create and process loans
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/loans/**"
@@ -217,7 +200,7 @@ public class SecurityConfig {
                                 "REVIEWER"
                         )
 
-                        // UPDATE LOANS
+                        // Update loans
                         .requestMatchers(
                                 HttpMethod.PUT,
                                 "/api/loans/**"
@@ -231,7 +214,7 @@ public class SecurityConfig {
                         .authenticated()
                 )
 
-                // JWT Filter
+                // JWT filter
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
@@ -241,45 +224,25 @@ public class SecurityConfig {
     }
 
 
-    // =========================================================
-    // CORS CONFIGURATION
-    // =========================================================
-
+    /**
+     * GLOBAL CORS CONFIGURATION
+     *
+     * IMPORTANT:
+     * Origins must be plain URLs.
+     * DO NOT use Markdown links here.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
-
-        // =====================================================
-        // ALLOWED FRONTEND ORIGINS
-        // =====================================================
-
-        configuration.setAllowedOriginPatterns(
+        configuration.setAllowedOrigins(
                 List.of(
-
-                        // Your production Vercel frontend
                         "https://loan-guard-ai-five.vercel.app",
-
-                        // Other Vercel deployments
-                        "https://*.vercel.app",
-
-                        // Local development
-                        "http://localhost:5173",
-
-                        // Other localhost ports
-                        "http://localhost:*",
-
-                        // Local IP development
-                        "http://127.0.0.1:*"
+                        "http://localhost:5173"
                 )
         );
-
-
-        // =====================================================
-        // ALLOWED HTTP METHODS
-        // =====================================================
 
         configuration.setAllowedMethods(
                 List.of(
@@ -292,21 +255,13 @@ public class SecurityConfig {
                 )
         );
 
-
-        // =====================================================
-        // ALLOWED HEADERS
-        // =====================================================
-
         configuration.setAllowedHeaders(
                 List.of(
-                        "*"
+                        "Authorization",
+                        "Content-Type",
+                        "Accept"
                 )
         );
-
-
-        // =====================================================
-        // EXPOSED HEADERS
-        // =====================================================
 
         configuration.setExposedHeaders(
                 List.of(
@@ -314,21 +269,11 @@ public class SecurityConfig {
                 )
         );
 
-
-        // JWT is sent through Authorization header,
-        // not cookies
+        // JWT is sent in Authorization header.
+        // Cookies are not used.
         configuration.setAllowCredentials(false);
 
-
-        // Cache preflight request for 1 hour
-        configuration.setMaxAge(
-                3600L
-        );
-
-
-        // =====================================================
-        // APPLY CORS TO ALL ENDPOINTS
-        // =====================================================
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
