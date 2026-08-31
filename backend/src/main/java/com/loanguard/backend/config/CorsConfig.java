@@ -12,7 +12,8 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOriginPatterns(
                         "http://localhost:*",
-                        "http://127.0.0.1:*"
+                        "http://127.0.0.1:*",
+                        "https://loan-guard-ai-five.vercel.app"
                 )
                 .allowedMethods(
                         "GET",
