@@ -11,7 +11,7 @@ import {
 
 import "./Audit.css";
 
-const API_URL = "http://localhost:8082/api";
+const API_URL = "https://loanguard-ai-2y9l.onrender.com/api";
 
 type AuditLog = {
   id: number;

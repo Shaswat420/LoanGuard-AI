@@ -71,7 +71,7 @@ function AddLoan() {
 
     try {
       const response = await fetch(
-        "http://localhost:8082/api/loans",
+        "https://loanguard-ai-2y9l.onrender.com/api/loans",
         {
           method: "POST",
           headers: {

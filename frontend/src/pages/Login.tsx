@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
-const API_URL = "http://localhost:8082/api";
+const API_URL = "https://loanguard-ai-2y9l.onrender.com/api";
 
 interface LoginResponse {
   token: string;

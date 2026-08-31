@@ -26,7 +26,7 @@ interface Stats {
   rejected: number;
 }
 
-const API = "http://localhost:8082/api";
+const API = "https://loanguard-ai-2y9l.onrender.com/api";
 
 function LoanDashboard() {
   const navigate = useNavigate();

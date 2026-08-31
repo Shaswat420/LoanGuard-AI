@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 
-const API = "http://localhost:8082";
+const API = "https://loanguard-ai-2y9l.onrender.com";
 
 interface Loan {
   id: number;

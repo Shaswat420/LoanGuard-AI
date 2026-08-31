@@ -15,7 +15,7 @@ import "./Reviewer.css";
 // =========================================================
 
 const API_URL =
-  "http://localhost:8082/api";
+  "https://loanguard-ai-2y9l.onrender.com/api";
 
 // =========================================================
 // TYPES

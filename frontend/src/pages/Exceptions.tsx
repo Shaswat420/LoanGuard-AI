@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Exceptions.css";
 
-const API_URL = "http://localhost:8082/api";
+const API_URL = "https://loanguard-ai-2y9l.onrender.com/api";
 
 type ValidationIssue = {
   rule: string;
